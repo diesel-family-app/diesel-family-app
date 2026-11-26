@@ -211,6 +211,8 @@ const $=id=>document.getElementById(id);
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
 function initials(n){return (n||"?").split(" ").map(x=>x[0]).join("").slice(0,2).toUpperCase();}
+function cleanName(){let n=(myProfile&&myProfile.full_name)||((me&&me.email)||"");if(n.indexOf("@")>-1)n=n.split("@")[0];return n;}
+function firstName(){const f=cleanName().split(/[.\s_]+/)[0]||"there";return f.charAt(0).toUpperCase()+f.slice(1);}
 
 if(!CFG.url||CFG.url==="YOUR_SUPABASE_URL"){
   document.body.innerHTML='<div style="max-width:520px;margin:12vh auto;font-family:system-ui;padding:24px;border:1px solid #ddd;border-radius:14px"><h2>Almost there</h2><p>Open <b>config.js</b> and paste your Supabase URL and anon key (SETUP.md Step 9), then reload.</p></div>';
@@ -265,7 +267,7 @@ $("npBtn").onclick=async()=>{
 /* ===================== app shell ===================== */
 async function showApp(){
   $("authwrap").style.display="none"; $("appwrap").style.display="block";
-  $("meBtn").textContent=initials(myProfile.full_name);
+  $("meBtn").textContent=initials(cleanName());
   applyTheme(myProfile.theme||"coastal");
   const {data:hh}=await sb.from("households").select("*");
   (hh||[]).forEach(h=>households[h.id]=h.name);
@@ -274,7 +276,39 @@ async function showApp(){
   buildThemes(); switchPage("dashboard");
   loadNotifications(); subscribeAll();
 }
-$("meBtn").onclick=async()=>{ if(confirm("Sign out?")){ await sb.auth.signOut(); } };
+$("meBtn").onclick=openAccount;
+function openAccount(){
+  const nm=(myProfile.full_name&&myProfile.full_name.indexOf("@")===-1)?myProfile.full_name:"";
+  $("modalBox").innerHTML=`<h2>Account</h2>
+    <label class="fld">Your display name</label><input id="acName" value="${esc(nm)}" placeholder="e.g. Lachlann">
+    <div style="margin-top:8px"><button class="btn go" id="acNameSave">Save name</button> <span class="cap" id="acMsg"></span></div>
+    <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
+    <button class="btn" id="acPw" style="width:100%;margin-bottom:8px">Change password</button>
+    <button class="btn" id="acOut" style="width:100%">Sign out</button>`;
+  $("modal").classList.add("on");
+  $("acNameSave").onclick=async()=>{
+    const v=$("acName").value.trim(); if(!v)return;
+    const {error}=await sb.from("profiles").update({full_name:v}).eq("id",me.id);
+    if(error){$("acMsg").textContent=error.message;return;}
+    myProfile.full_name=v; $("meBtn").textContent=initials(cleanName()); $("acMsg").textContent="Saved ✓";
+    if($("v-dashboard").classList.contains("on"))loadDashboard();
+  };
+  $("acPw").onclick=openChangePassword;
+  $("acOut").onclick=async()=>{ $("modal").classList.remove("on"); await sb.auth.signOut(); };
+}
+function openChangePassword(){
+  $("modalBox").innerHTML=`<h2>Change password</h2><label class="fld">New password</label><input id="cpPass" type="password" autocomplete="new-password"><label class="fld">Repeat new password</label><input id="cpPass2" type="password" autocomplete="new-password"><div class="err" id="cpErr"></div><div style="display:flex;gap:8px;margin-top:14px"><button class="btn go" id="cpSave">Save</button><button class="btn" id="cpCancel">Cancel</button></div>`;
+  $("cpCancel").onclick=()=>$("modal").classList.remove("on");
+  $("cpSave").onclick=async()=>{
+    const p=$("cpPass").value,p2=$("cpPass2").value;
+    if(p.length<8){$("cpErr").textContent="Use at least 8 characters.";return;}
+    if(p!==p2){$("cpErr").textContent="The two passwords don’t match.";return;}
+    const b=$("cpSave");b.disabled=true;
+    const {error}=await sb.auth.updateUser({password:p});
+    if(error){$("cpErr").textContent=error.message;b.disabled=false;return;}
+    $("modal").classList.remove("on");toast("Password updated");
+  };
+}
 $("nav").onclick=e=>{const a=e.target.closest("a");if(a)switchPage(a.dataset.page);};
 function switchPage(pg){
   document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("act",a.dataset.page===pg));
@@ -294,7 +328,7 @@ function comingSoon(pg,title,desc){
 /* ===================== dashboard ===================== */
 async function loadDashboard(){
   const hour=new Date().getHours(), hi=hour<12?"Good morning":hour<18?"Good afternoon":"Good evening";
-  const name=(myProfile.full_name||"").split(" ")[0]||"there";
+  const name=firstName();
   const {data:evs}=await sb.from("events").select("*").gte("starts_at",new Date().toISOString()).order("starts_at").limit(1);
   const next=evs&&evs[0];
   let evHtml='<div class="cap">No upcoming events yet.</div>';
@@ -327,8 +361,9 @@ async function loadCalendar(){
 function eventCard(ev,mine,shared){
   const d=new Date(ev.starts_at);
   const mon=d.toLocaleString('en',{month:'short'});
+  const canDel=(ev.created_by===me.id)||!!myProfile.is_lender;
   return `<div class="event"><div class="date"><div class="d">${d.getDate()}</div><div class="m">${mon}</div></div>
-    <div class="info"><div class="t">${esc(ev.title)} ${shared?'<span class="badge">Shared</span>':'<span class="badge soon">Household</span>'}</div>
+    <div class="info"><div style="display:flex;align-items:flex-start;gap:8px"><div class="t" style="flex:1">${esc(ev.title)} ${shared?'<span class="badge">Shared</span>':'<span class="badge soon">Household</span>'}</div>${canDel?'<button class="tdx" data-delev="'+ev.id+'" title="Delete event">✕</button>':''}</div>
       <div class="l">${d.toLocaleString('en',{weekday:'short',hour:'2-digit',minute:'2-digit'})}${ev.location?' · '+esc(ev.location):''}</div>
       <div class="rsvp" data-ev="${ev.id}">
         <button class="btn sm go ${mine==='going'?'chosen':''}" data-rsvp="going">I'll be there</button>
@@ -348,6 +383,12 @@ function wireRsvp(root){
       refreshCount(box,evId);
     });
     refreshCount(box,evId);
+  });
+  root.querySelectorAll("[data-delev]").forEach(b=>b.onclick=async()=>{
+    if(!confirm("Delete this event?"))return;
+    await sb.from("events").delete().eq("id",b.dataset.delev);
+    toast("Event deleted");
+    if($("v-calendar").classList.contains("on"))loadCalendar(); else loadDashboard();
   });
 }
 async function refreshCount(box,evId){
@@ -372,11 +413,12 @@ function openAddEvent(){
   $("evSave").onclick=async()=>{
     const title=$("evTitle").value.trim(), when=$("evWhen").value;
     if(!title||!when){$("evErr").textContent="Give it a title and a date.";return;}
+    const btn=$("evSave"); if(btn.disabled)return; btn.disabled=true;
     const scope=$("evScope").value;
     const row={title,starts_at:new Date(when).toISOString(),location:$("evWhere").value.trim()||null,created_by:me.id,
       household_id: scope==="household"?myProfile.household_id:null};
     const {error}=await sb.from("events").insert(row);
-    if(error){$("evErr").textContent=error.message;return;}
+    if(error){$("evErr").textContent=error.message;btn.disabled=false;return;}
     if(scope==="shared"){ await inviteFamily(title); }
     $("modal").classList.remove("on"); toast("Event added"); loadCalendar();
   };
