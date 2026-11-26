@@ -187,7 +187,7 @@ async function boot(){
 }
 
 /* ===================== auth ===================== */
-function showAuth(){ $("authwrap").style.display="block"; $("appwrap").style.display="none"; applyTheme("coastal"); }
+function showAuth(){ $("authwrap").style.display="block"; $("appwrap").style.display="none"; applyTheme("coastal"); $("decor").innerHTML=""; }
 $("liBtn").onclick=async()=>{
   $("liErr").textContent="";
   const email=$("liEmail").value.trim(), pass=$("liPass").value;
@@ -208,7 +208,7 @@ async function afterLogin(){
 function showChangePw(){
   $("authwrap").style.display="block"; $("appwrap").style.display="none";
   $("loginForm").style.display="none"; $("pwForm").style.display="block";
-  $("authSub").textContent="One quick step";
+  $("authSub").textContent="One quick step"; $("decor").innerHTML="";
 }
 $("npBtn").onclick=async()=>{
   $("npErr").textContent="";
