@@ -5,6 +5,6 @@
 //  database's Row Level Security rules. NEVER put the service_role key here.
 // ============================================================================
 window.DFA_CONFIG = {
-  url:     "YOUR_SUPABASE_URL",       // e.g. https://vhaathjlymtrbseloqya.supabase.co
-  anonKey: "YOUR_SUPABASE_ANON_KEY"   // the "sb_publishable_RaidhakOPLJbSQd0s3f2mw_GgsMiAjZ" key from Project Settings → API
+  url:     "https://vhaathjlymtrbseloqya.supabase.co",
+  anonKey: "sb_publishable_RaidhakOPLJbSQd0s3f2mw_GgsMiAjZ"
 };
