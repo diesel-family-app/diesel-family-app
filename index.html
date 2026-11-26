@@ -129,6 +129,12 @@
   .foot{padding:14px 20px;border-top:1px solid var(--line);background:var(--surface2)}
   .muted{color:var(--muted);font-size:12.5px}
   @media(max-width:560px){.pm-left{min-width:100%}.spacer{display:none}}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+  @media(max-width:560px){.grid3{grid-template-columns:1fr}}
+  .monthnav{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+  .mlabel{font-weight:650;font-size:15px;min-width:150px;text-align:center}
+  .tdx{border:0;background:none;color:var(--muted);cursor:pointer;font-size:13px;padding:4px}
+  .tdx:hover{color:var(--danger)}
   footer{margin-top:22px;text-align:center;font-size:11px;color:var(--muted)}
 </style>
 </head>
@@ -277,8 +283,8 @@ function switchPage(pg){
   if(pg==="calendar")loadCalendar();
   if(pg==="gallery")loadGallery();
   if(pg==="ledger")loadLedger();
-  if(pg==="budget")comingSoon("budget","Budget Hub","Phase 3 — monthly household budget tracker.");
-  if(pg==="todos")comingSoon("todos","My To-dos","Phase 3 — your private to-do lists.");
+  if(pg==="budget")loadBudget();
+  if(pg==="todos")loadTodos();
   window.scrollTo({top:0,behavior:"smooth"});
 }
 function comingSoon(pg,title,desc){
@@ -546,6 +552,82 @@ function buildThemes(){
     grid.appendChild(b);
   });
   grid.querySelectorAll(".tcard").forEach(c=>c.classList.toggle("on",c.dataset.k===(myProfile.theme||"coastal")));
+}
+
+/* ===================== to-dos (Phase 3) ===================== */
+async function loadTodos(){
+  const el=$("v-todos");
+  el.innerHTML=`<h2 class="ledgh">My To-dos <span class="badge soon">Private</span></h2>
+    <div class="addbar"><input id="tdInput" placeholder="Add a to-do and press Enter…"><button class="btn go" id="tdAdd">Add</button></div>
+    <div class="lcard"><div id="tdList"></div></div>`;
+  $("tdAdd").onclick=addTodo;
+  $("tdInput").onkeydown=e=>{if(e.key==="Enter")addTodo();};
+  renderTodos();
+}
+async function renderTodos(){
+  const {data}=await sb.from("todos").select("*").eq("user_id",me.id).order("done").order("created_at",{ascending:false});
+  const list=data||[]; const box=$("tdList"); if(!box)return;
+  if(!list.length){ box.innerHTML='<div class="prow"><span class="muted">Nothing yet — add your first to-do above.</span></div>'; return; }
+  box.innerHTML=list.map(t=>`<div class="prow"><span class="ck${t.done?' on':''}" data-tog="${t.id}" style="cursor:pointer"></span><span class="${t.done?'done':''}" style="font-size:14px">${esc(t.title)}</span><span class="spacer"></span><button class="tdx" data-del="${t.id}" title="Delete">✕</button></div>`).join("");
+  box.querySelectorAll("[data-tog]").forEach(c=>c.onclick=async()=>{const done=!c.classList.contains("on");await sb.from("todos").update({done}).eq("id",c.dataset.tog);renderTodos();});
+  box.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{await sb.from("todos").delete().eq("id",b.dataset.del);renderTodos();});
+}
+async function addTodo(){const inp=$("tdInput");const t=inp.value.trim();if(!t)return;inp.value="";await sb.from("todos").insert({user_id:me.id,title:t});renderTodos();}
+
+/* ===================== budget hub (Phase 3) ===================== */
+let budgetPeriod=null;
+function monthKey(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-01";}
+async function loadBudget(){
+  if(!myProfile.household_id){ $("v-budget").innerHTML='<h2 class="ledgh">Budget Hub</h2><div class="empty">You’re not in a household yet.</div>'; return; }
+  if(!budgetPeriod) budgetPeriod=monthKey(new Date());
+  renderBudget();
+}
+async function renderBudget(){
+  const el=$("v-budget");
+  const label=new Date(budgetPeriod).toLocaleString("en",{month:"long",year:"numeric"});
+  const {data}=await sb.from("budget_entries").select("*").eq("household_id",myProfile.household_id).eq("period",budgetPeriod).order("created_at");
+  const list=data||[];
+  const income=list.filter(x=>x.kind==="income"), expense=list.filter(x=>x.kind==="expense");
+  const inc=income.reduce((a,x)=>a+Number(x.amount),0), spent=expense.reduce((a,x)=>a+Number(x.amount),0), left=inc-spent;
+  const spentPct=inc>0?Math.min(100,spent/inc*100):0;
+  el.innerHTML=`<h2 class="ledgh">Budget Hub <span class="badge soon">${esc(households[myProfile.household_id]||"")}</span></h2>
+    <div class="monthnav"><button class="btn sm" id="bmPrev">‹</button><div class="mlabel">${label}</div><button class="btn sm" id="bmNext">›</button></div>
+    <div class="grid3" style="margin-bottom:16px">
+      <div class="lcard"><div class="pad"><div class="lgr-who">Income</div><div class="amtbig" style="color:var(--good)">${fmtR(inc)}</div></div></div>
+      <div class="lcard"><div class="pad"><div class="lgr-who">Spent</div><div class="amtbig">${fmtR(spent)}</div><div class="track" style="margin-top:8px"><i style="width:${spentPct}%"></i></div></div></div>
+      <div class="lcard"><div class="pad"><div class="lgr-who">Left to spend</div><div class="amtbig" style="color:${left<0?'var(--danger)':'var(--ink)'}">${fmtR(left)}</div></div></div>
+    </div>
+    <div class="lcard"><div class="pad" style="display:flex;justify-content:space-between;align-items:center"><div class="lgr-nm">Income</div><button class="btn go sm" id="addInc">+ Add income</button></div><div class="plist" id="incList"></div></div>
+    <div class="lcard"><div class="pad" style="display:flex;justify-content:space-between;align-items:center"><div class="lgr-nm">Expenses</div><button class="btn go sm" id="addExp">+ Add expense</button></div><div class="plist" id="expList"></div></div>`;
+  $("bmPrev").onclick=()=>{const n=new Date(budgetPeriod);n.setMonth(n.getMonth()-1);budgetPeriod=monthKey(n);renderBudget();};
+  $("bmNext").onclick=()=>{const n=new Date(budgetPeriod);n.setMonth(n.getMonth()+1);budgetPeriod=monthKey(n);renderBudget();};
+  $("addInc").onclick=()=>openEntry("income");
+  $("addExp").onclick=()=>openEntry("expense");
+  renderEntries($("incList"),income);
+  renderEntries($("expList"),expense);
+}
+function renderEntries(box,items){
+  if(!box)return;
+  if(!items.length){ box.innerHTML='<div class="prow"><span class="muted">Nothing added yet.</span></div>'; return; }
+  box.innerHTML=items.map(x=>`<div class="prow"><div class="pm-left"><div class="pm-mo">${esc(x.label)}</div>${x.payer?'<div class="pm-amt">'+esc(x.payer)+'</div>':''}</div><span class="spacer"></span><span class="pm-mo" style="font-variant-numeric:tabular-nums">${fmtR(x.amount)}</span><button class="tdx" data-delx="${x.id}" title="Remove">✕</button></div>`).join("");
+  box.querySelectorAll("[data-delx]").forEach(b=>b.onclick=async()=>{await sb.from("budget_entries").delete().eq("id",b.dataset.delx);renderBudget();});
+}
+function openEntry(kind){
+  $("modalBox").innerHTML=`<h2>Add ${kind==="income"?"income":"an expense"}</h2>
+    <label class="fld">What is it?</label><input id="beLabel" placeholder="${kind==="income"?"Salary, side income…":"Groceries, rent, fuel…"}">
+    <label class="fld">Who ${kind==="income"?"earned it":"is paying"}?</label><input id="bePayer" placeholder="Name (optional)">
+    <label class="fld">Amount (R)</label><input id="beAmt" type="number">
+    <div class="err" id="beErr"></div>
+    <div style="display:flex;gap:8px;margin-top:14px"><button class="btn go" id="beSave">Add</button><button class="btn" id="beCancel">Cancel</button></div>`;
+  $("modal").classList.add("on");
+  $("beCancel").onclick=()=>$("modal").classList.remove("on");
+  $("beSave").onclick=async()=>{
+    const label=$("beLabel").value.trim(), amt=$("beAmt").value, payer=$("bePayer").value.trim()||null;
+    if(!label||!amt){$("beErr").textContent="Enter a name and an amount.";return;}
+    const {error}=await sb.from("budget_entries").insert({household_id:myProfile.household_id,period:budgetPeriod,kind,label,payer,amount:amt,created_by:me.id});
+    if(error){$("beErr").textContent=error.message;return;}
+    $("modal").classList.remove("on"); toast("Added"); renderBudget();
+  };
 }
 
 /* ===================== notifications ===================== */
