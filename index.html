@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diesel Family</title>
+<style>
+  :root{
+    --bg:#eef3f6;--surface:#ffffff;--surface2:#f4f8fa;--ink:#13303a;--muted:#5b7682;
+    --line:#dde7ec;--accent:#0e8c9e;--accentInk:#ffffff;--accentSoft:#d9f0f3;
+    --good:#2fa37a;--warn:#e0912f;--danger:#d65745;
+    --radius:16px;--shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;transition:background .35s,color .35s}
+  .decor{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+  .dec{position:absolute}.orb{position:absolute;border-radius:50%;filter:blur(20px);opacity:.5}
+  .photoframe{position:absolute;border-radius:12px;border:3px solid #fff;box-shadow:0 10px 26px rgba(0,0,0,.18);opacity:.6}
+  .bub{position:absolute;border-radius:50%;background:var(--accent);opacity:.18;animation:rise linear infinite}
+  @media(max-width:1120px){.decor{display:none}}
+  @keyframes rise{0%{transform:translateY(0);opacity:0}15%{opacity:.22}100%{transform:translateY(-78vh);opacity:0}}
+  @keyframes twinkle{0%,100%{opacity:.2;transform:scale(.7)}50%{opacity:.95;transform:scale(1.15)}}
+  @keyframes drift{0%,100%{transform:translate(0,0)}50%{transform:translate(12px,-16px)}}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes sway{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(7deg)}}
+  @keyframes rock{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}}
+  @keyframes swim{0%{transform:translateX(-24vw)}50%{transform:translateX(50vw) translateY(-16px)}100%{transform:translateX(124vw)}}
+  @keyframes float{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(26px,-30px) scale(1.08)}66%{transform:translate(-22px,18px) scale(.95)}}
+  @media(prefers-reduced-motion:reduce){.dec,.bub,.orb,.photoframe{animation:none!important}}
+
+  .wrap{max-width:900px;margin:0 auto;padding:16px 18px 70px;position:relative;z-index:1}
+  .app{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow)}
+  .appbar{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line);background:var(--surface);position:sticky;top:0;z-index:20}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:750;font-size:16px}
+  .brand .mark{width:28px;height:28px;border-radius:8px;background:var(--accent);color:var(--accentInk);display:grid;place-items:center}
+  .nav{display:flex;gap:4px;margin-left:8px;flex-wrap:wrap}
+  .nav a{font-size:13px;color:var(--muted);cursor:pointer;padding:6px 11px;border-radius:8px;font-weight:550;user-select:none}
+  .nav a.act{background:var(--accentSoft);color:var(--accent)}
+  .appbar .right{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .bell{position:relative;width:34px;height:34px;border-radius:9px;background:var(--surface2);display:grid;place-items:center;font-size:15px;cursor:pointer}
+  .bell b{position:absolute;top:-4px;right:-4px;background:var(--danger);color:#fff;font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:9px;display:grid;place-items:center;padding:0 3px;border:2px solid var(--surface)}
+  .me{width:34px;height:34px;border-radius:50%;background:var(--accent);color:var(--accentInk);display:grid;place-items:center;font-weight:700;font-size:13px;cursor:pointer}
+  .body{padding:18px;min-height:300px}
+  .view{display:none}.view.on{display:block}
+  h1{font-size:21px;margin:0 0 4px}h2{font-size:19px;margin:0 0 12px}
+  .sub{font-size:13px;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  .wide{grid-column:1/-1}
+  @media(max-width:640px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .card h3{margin:0 0 8px;font-size:15px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .cap{font-size:12px;color:var(--muted)}
+  .badge{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:20px;background:var(--accentSoft);color:var(--accent);text-transform:uppercase}
+  .badge.soon{background:var(--surface2);color:var(--muted);border:1px solid var(--line)}
+  .btn{font:inherit;font-size:13px;font-weight:600;border-radius:9px;padding:8px 13px;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+  .btn.go{background:var(--accent);color:var(--accentInk);border-color:var(--accent)}
+  .btn.sm{padding:5px 10px;font-size:12px}
+  .btn:disabled{opacity:.5;cursor:default}
+  input,textarea{font:inherit;background:var(--surface2);border:1px solid var(--line);border-radius:9px;padding:9px 11px;color:var(--ink);width:100%}
+  input:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  label.fld{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px;font-weight:600}
+  .event{display:flex;gap:13px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:11px;background:var(--surface2);margin-bottom:10px}
+  .date{flex:none;width:52px;text-align:center;background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:6px 0}
+  .date .d{font-size:19px;font-weight:750;line-height:1}.date .m{font-size:10px;text-transform:uppercase;color:var(--muted)}
+  .event .info{flex:1}.event .info .t{font-weight:650;font-size:14px}.event .info .l{font-size:12px;color:var(--muted)}
+  .rsvp{display:flex;gap:7px;margin-top:8px;flex-wrap:wrap;align-items:center}
+  .rsvp small{color:var(--muted);font-size:12px}
+  .chosen{box-shadow:0 0 0 2px var(--accent) inset}
+  .galgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
+  .gtile{position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--surface2)}
+  .gtile img{width:100%;height:100%;object-fit:cover;display:block}
+  .gby{position:absolute;left:6px;bottom:6px;font-size:10px;background:rgba(0,0,0,.45);color:#fff;padding:2px 7px;border-radius:20px}
+  .empty{padding:30px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:12px}
+  .tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+  .tcard{border:1.5px solid var(--line);border-radius:14px;overflow:hidden;background:var(--surface);text-align:left;font:inherit;color:var(--ink);padding:0}
+  .tcard.on{border-color:var(--accent);box-shadow:0 0 0 1.5px var(--accent) inset}
+  .tprev{height:60px;display:flex;align-items:center;justify-content:center;gap:8px}
+  .tprev .mk{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;font-weight:700;color:#fff}
+  .tprev .cl{width:46px;height:30px;border-radius:7px;border:1px solid rgba(0,0,0,.12)}
+  .tmeta{padding:10px 12px;border-top:1px solid var(--line)}.tmeta b{font-size:14px}.tmeta small{display:block;color:var(--muted);font-size:12px}
+  /* auth */
+  .authwrap{max-width:380px;margin:9vh auto;position:relative;z-index:1}
+  .authcard{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:26px}
+  .authcard .mk{width:46px;height:46px;border-radius:12px;background:var(--accent);color:#fff;display:grid;place-items:center;font-size:22px;margin:0 auto 14px}
+  .authcard h1{text-align:center;font-size:20px;margin-bottom:2px}
+  .authcard p.sub{text-align:center;margin:0 0 16px}
+  .err{color:var(--danger);font-size:13px;margin-top:10px;min-height:16px}
+  .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:10px;font-size:13px;z-index:60;opacity:0;transition:opacity .2s;z-index:80}
+  .toast.show{opacity:1}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:70;padding:18px}
+  .modal.on{display:flex}
+  .modal .box{background:var(--surface);border-radius:16px;padding:20px;width:100%;max-width:420px}
+  .panel{position:absolute;top:52px;right:12px;width:300px;max-height:60vh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:10px;display:none;z-index:40}
+  .panel.on{display:block}
+  .ntf{padding:9px;border-bottom:1px solid var(--line);font-size:13px}.ntf:last-child{border:0}.ntf small{color:var(--muted);font-size:11px}
+  footer{margin-top:22px;text-align:center;font-size:11px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="decor" id="decor"></div>
+
+<!-- AUTH -->
+<div class="authwrap" id="authwrap" style="display:none">
+  <div class="authcard">
+    <div class="mk">◆</div>
+    <h1 id="authTitle">Diesel Family</h1>
+    <p class="sub" id="authSub">Sign in to your family space</p>
+    <div id="loginForm">
+      <label class="fld">Email</label><input id="liEmail" type="email" autocomplete="username">
+      <label class="fld">Password</label><input id="liPass" type="password" autocomplete="current-password">
+      <div class="err" id="liErr"></div>
+      <button class="btn go" style="width:100%;margin-top:12px" id="liBtn">Sign in</button>
+    </div>
+    <div id="pwForm" style="display:none">
+      <p class="sub" style="text-align:left">Set a new password to finish setting up your account.</p>
+      <label class="fld">New password</label><input id="npPass" type="password" autocomplete="new-password">
+      <label class="fld">Repeat new password</label><input id="npPass2" type="password" autocomplete="new-password">
+      <div class="err" id="npErr"></div>
+      <button class="btn go" style="width:100%;margin-top:12px" id="npBtn">Save &amp; continue</button>
+    </div>
+  </div>
+  <footer>Diesel Family · v1.0</footer>
+</div>
+
+<!-- APP -->
+<div class="wrap" id="appwrap" style="display:none">
+  <div class="app">
+    <div class="appbar">
+      <div class="brand"><span class="mark">◆</span> Diesel Family</div>
+      <nav class="nav" id="nav">
+        <a data-page="dashboard" class="act">Dashboard</a>
+        <a data-page="calendar">Calendar</a>
+        <a data-page="gallery">Gallery</a>
+        <a data-page="ledger">Ledger</a>
+        <a data-page="budget">Budget</a>
+        <a data-page="todos">To-dos</a>
+        <a data-page="themes">Themes</a>
+      </nav>
+      <div class="right">
+        <div class="bell" id="bell">🔔<b id="ntCount" style="display:none">0</b></div>
+        <div class="me" id="meBtn" title="Sign out">··</div>
+      </div>
+      <div class="panel" id="ntPanel"></div>
+    </div>
+    <div class="body">
+      <section class="view on" data-page="dashboard" id="v-dashboard"></section>
+      <section class="view" data-page="calendar" id="v-calendar"></section>
+      <section class="view" data-page="gallery" id="v-gallery"></section>
+      <section class="view" data-page="ledger" id="v-ledger"></section>
+      <section class="view" data-page="budget" id="v-budget"></section>
+      <section class="view" data-page="todos" id="v-todos"></section>
+      <section class="view" data-page="themes" id="v-themes"></section>
+    </div>
+  </div>
+  <footer>Diesel Family · v1.0 · built with Claude</footer>
+</div>
+
+<div class="modal" id="modal"><div class="box" id="modalBox"></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="themes.js"></script>
+<script>
+/* ===================== setup ===================== */
+const CFG = window.DFA_CONFIG || {};
+let sb=null, me=null, myProfile=null, households={};
+const $=id=>document.getElementById(id);
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
+function initials(n){return (n||"?").split(" ").map(x=>x[0]).join("").slice(0,2).toUpperCase();}
+
+if(!CFG.url||CFG.url==="YOUR_SUPABASE_URL"){
+  document.body.innerHTML='<div style="max-width:520px;margin:12vh auto;font-family:system-ui;padding:24px;border:1px solid #ddd;border-radius:14px"><h2>Almost there</h2><p>Open <b>config.js</b> and paste your Supabase URL and anon key (SETUP.md Step 9), then reload.</p></div>';
+} else {
+  sb = supabase.createClient(CFG.url, CFG.anonKey);
+  boot();
+}
+
+async function boot(){
+  const {data:{session}} = await sb.auth.getSession();
+  if(session){ await afterLogin(); } else { showAuth(); }
+  sb.auth.onAuthStateChange((_e,s)=>{ if(!s){ location.reload(); } });
+}
+
+/* ===================== auth ===================== */
+function showAuth(){ $("authwrap").style.display="block"; $("appwrap").style.display="none"; applyTheme("coastal"); }
+$("liBtn").onclick=async()=>{
+  $("liErr").textContent="";
+  const email=$("liEmail").value.trim(), pass=$("liPass").value;
+  if(!email||!pass){$("liErr").textContent="Enter your email and password.";return;}
+  $("liBtn").disabled=true;
+  const {error}=await sb.auth.signInWithPassword({email,password:pass});
+  $("liBtn").disabled=false;
+  if(error){$("liErr").textContent=error.message;return;}
+  await afterLogin();
+};
+async function afterLogin(){
+  const {data:{user}}=await sb.auth.getUser(); me=user;
+  let {data:prof}=await sb.from("profiles").select("*").eq("id",me.id).single();
+  myProfile=prof||{theme:"coastal",full_name:me.email};
+  if(myProfile.must_change_password){ showChangePw(); return; }
+  showApp();
+}
+function showChangePw(){
+  $("authwrap").style.display="block"; $("appwrap").style.display="none";
+  $("loginForm").style.display="none"; $("pwForm").style.display="block";
+  $("authSub").textContent="One quick step";
+}
+$("npBtn").onclick=async()=>{
+  $("npErr").textContent="";
+  const p=$("npPass").value, p2=$("npPass2").value;
+  if(p.length<8){$("npErr").textContent="Use at least 8 characters.";return;}
+  if(p!==p2){$("npErr").textContent="The two passwords don't match.";return;}
+  $("npBtn").disabled=true;
+  const {error}=await sb.auth.updateUser({password:p});
+  if(error){$("npErr").textContent=error.message;$("npBtn").disabled=false;return;}
+  await sb.from("profiles").update({must_change_password:false}).eq("id",me.id);
+  myProfile.must_change_password=false;
+  $("npBtn").disabled=false; showApp();
+};
+
+/* ===================== app shell ===================== */
+async function showApp(){
+  $("authwrap").style.display="none"; $("appwrap").style.display="block";
+  $("meBtn").textContent=initials(myProfile.full_name);
+  applyTheme(myProfile.theme||"coastal");
+  const {data:hh}=await sb.from("households").select("*");
+  (hh||[]).forEach(h=>households[h.id]=h.name);
+  const {data:ppl}=await sb.from("profiles").select("id,full_name");
+  (ppl||[]).forEach(p=>nameCache[p.id]=(p.full_name||"Family").split(" ")[0]);
+  buildThemes(); switchPage("dashboard");
+  loadNotifications(); subscribeAll();
+}
+$("meBtn").onclick=async()=>{ if(confirm("Sign out?")){ await sb.auth.signOut(); } };
+$("nav").onclick=e=>{const a=e.target.closest("a");if(a)switchPage(a.dataset.page);};
+function switchPage(pg){
+  document.querySelectorAll("#nav a").forEach(a=>a.classList.toggle("act",a.dataset.page===pg));
+  document.querySelectorAll(".view").forEach(v=>v.classList.toggle("on",v.dataset.page===pg));
+  if(pg==="dashboard")loadDashboard();
+  if(pg==="calendar")loadCalendar();
+  if(pg==="gallery")loadGallery();
+  if(pg==="ledger")comingSoon("ledger","Family Ledger","Phase 2 — inheritance, loans, proof-of-payment and approvals.");
+  if(pg==="budget")comingSoon("budget","Budget Hub","Phase 3 — monthly household budget tracker.");
+  if(pg==="todos")comingSoon("todos","My To-dos","Phase 3 — your private to-do lists.");
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function comingSoon(pg,title,desc){
+  $("v-"+pg).innerHTML=`<h2>${esc(title)} <span class="badge soon">Coming next</span></h2><div class="empty">${esc(desc)}<br><br>The data & privacy rules for this are already built — the screen lands in the next release.</div>`;
+}
+
+/* ===================== dashboard ===================== */
+async function loadDashboard(){
+  const hour=new Date().getHours(), hi=hour<12?"Good morning":hour<18?"Good afternoon":"Good evening";
+  const name=(myProfile.full_name||"").split(" ")[0]||"there";
+  const {data:evs}=await sb.from("events").select("*").gte("starts_at",new Date().toISOString()).order("starts_at").limit(1);
+  const next=evs&&evs[0];
+  let evHtml='<div class="cap">No upcoming events yet.</div>';
+  if(next) evHtml=eventCard(next,await myRsvp(next.id),true);
+  const {data:todo}=await sb.from("todos").select("id,done").eq("user_id",me.id);
+  const open=(todo||[]).filter(t=>!t.done).length;
+  $("v-dashboard").innerHTML=`
+    <h1>${esc(hi)}, ${esc(name)}</h1><div class="sub">Here's what's shared with you today.</div>
+    <div class="grid" style="margin-top:14px">
+      <div class="card wide"><h3>Next on the family calendar <span class="badge">Shared</span></h3>${evHtml}</div>
+      <div class="card"><h3>Your household</h3><div class="cap">${esc(households[myProfile.household_id]||"—")}</div></div>
+      <div class="card"><h3>Your to-dos</h3><div class="cap">${open} open ${open===1?"item":"items"} · opens in the next release</div></div>
+    </div>`;
+  wireRsvp($("v-dashboard"));
+}
+
+/* ===================== calendar ===================== */
+async function loadCalendar(){
+  const {data:evs}=await sb.from("events").select("*").order("starts_at");
+  const list=(evs||[]);
+  let rows=list.length?"":'<div class="empty">No events yet. Add the first one!</div>';
+  for(const ev of list){ rows+=eventCard(ev, await myRsvp(ev.id), ev.household_id==null); }
+  $("v-calendar").innerHTML=`
+    <h2>Calendar <button class="btn go sm" id="addEvBtn" style="float:right">+ Add event</button></h2>
+    <div class="cap" style="margin-bottom:12px">Shared events go to the whole family and everyone can RSVP. Household events stay inside your household.</div>
+    ${rows}`;
+  $("addEvBtn").onclick=openAddEvent;
+  wireRsvp($("v-calendar"));
+}
+function eventCard(ev,mine,shared){
+  const d=new Date(ev.starts_at);
+  const mon=d.toLocaleString('en',{month:'short'});
+  return `<div class="event"><div class="date"><div class="d">${d.getDate()}</div><div class="m">${mon}</div></div>
+    <div class="info"><div class="t">${esc(ev.title)} ${shared?'<span class="badge">Shared</span>':'<span class="badge soon">Household</span>'}</div>
+      <div class="l">${d.toLocaleString('en',{weekday:'short',hour:'2-digit',minute:'2-digit'})}${ev.location?' · '+esc(ev.location):''}</div>
+      <div class="rsvp" data-ev="${ev.id}">
+        <button class="btn sm go ${mine==='going'?'chosen':''}" data-rsvp="going">I'll be there</button>
+        <button class="btn sm ${mine==='cant'?'chosen':''}" data-rsvp="cant">Can't make it</button>
+        <small data-count></small></div></div></div>`;
+}
+async function myRsvp(evId){
+  const {data}=await sb.from("rsvps").select("status").eq("event_id",evId).eq("user_id",me.id).maybeSingle();
+  return data&&data.status;
+}
+function wireRsvp(root){
+  root.querySelectorAll(".rsvp").forEach(async box=>{
+    const evId=box.dataset.ev;
+    box.querySelectorAll("[data-rsvp]").forEach(b=>b.onclick=async()=>{
+      await sb.from("rsvps").upsert({event_id:evId,user_id:me.id,status:b.dataset.rsvp,responded_at:new Date().toISOString()},{onConflict:"event_id,user_id"});
+      box.querySelectorAll("[data-rsvp]").forEach(x=>x.classList.toggle("chosen",x===b));
+      refreshCount(box,evId);
+    });
+    refreshCount(box,evId);
+  });
+}
+async function refreshCount(box,evId){
+  const {data}=await sb.from("rsvps").select("status").eq("event_id",evId);
+  const g=(data||[]).filter(r=>r.status==='going').length, c=(data||[]).filter(r=>r.status==='cant').length;
+  const el=box.querySelector("[data-count]"); if(el)el.textContent=`${g} going · ${c} can't`;
+}
+function openAddEvent(){
+  const hh=households[myProfile.household_id]||"my household";
+  $("modalBox").innerHTML=`<h2>Add an event</h2>
+    <label class="fld">Title</label><input id="evTitle" placeholder="Christmas Lunch">
+    <label class="fld">Date &amp; time</label><input id="evWhen" type="datetime-local">
+    <label class="fld">Where (optional)</label><input id="evWhere">
+    <label class="fld">Who sees it</label>
+    <select id="evScope" style="width:100%;font:inherit;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:var(--surface2);color:var(--ink)">
+      <option value="shared">Whole family (shared)</option>
+      <option value="household">Just ${esc(hh)}</option></select>
+    <div class="err" id="evErr"></div>
+    <div style="display:flex;gap:8px;margin-top:14px"><button class="btn go" id="evSave">Add &amp; invite</button><button class="btn" id="evCancel">Cancel</button></div>`;
+  $("modal").classList.add("on");
+  $("evCancel").onclick=()=>$("modal").classList.remove("on");
+  $("evSave").onclick=async()=>{
+    const title=$("evTitle").value.trim(), when=$("evWhen").value;
+    if(!title||!when){$("evErr").textContent="Give it a title and a date.";return;}
+    const scope=$("evScope").value;
+    const row={title,starts_at:new Date(when).toISOString(),location:$("evWhere").value.trim()||null,created_by:me.id,
+      household_id: scope==="household"?myProfile.household_id:null};
+    const {error}=await sb.from("events").insert(row);
+    if(error){$("evErr").textContent=error.message;return;}
+    if(scope==="shared"){ await inviteFamily(title); }
+    $("modal").classList.remove("on"); toast("Event added"); loadCalendar();
+  };
+}
+async function inviteFamily(title){
+  // in-app invite to everyone (email invites are added in the next step via the Edge Function)
+  const {data:ppl}=await sb.from("profiles").select("id").neq("id",me.id);
+  const rows=(ppl||[]).map(p=>({user_id:p.id,kind:"invite",body:`You're invited: ${title}`,link:"calendar"}));
+  if(rows.length) await sb.from("notifications").insert(rows);
+}
+
+/* ===================== gallery ===================== */
+async function loadGallery(){
+  $("v-gallery").innerHTML=`<h2>Family Gallery <span class="badge">Shared · everyone</span>
+    <label class="btn go sm" style="float:right">+ Upload<input id="galIn" type="file" accept="image/*" multiple hidden></label></h2>
+    <div class="cap" style="margin-bottom:12px">Everyone can see and add to this album.</div>
+    <div class="galgrid" id="galgrid"><div class="empty">Loading…</div></div>`;
+  $("galIn").onchange=e=>uploadPhotos(e.target.files);
+  renderGallery();
+}
+async function renderGallery(){
+  const {data:rows}=await sb.from("gallery").select("*").order("created_at",{ascending:false});
+  const grid=$("galgrid"); if(!grid)return;
+  if(!rows||!rows.length){grid.innerHTML='<div class="empty">No photos yet — tap Upload to start the family album.</div>';return;}
+  grid.innerHTML="";
+  const urls=[];
+  for(const r of rows){
+    const {data:signed}=await sb.storage.from("gallery").createSignedUrl(r.storage_path,3600);
+    const url=signed&&signed.signedUrl; if(!url)continue;
+    urls.push(url);
+    const by=esc(nameFor(r.uploader));
+    const div=document.createElement("div");div.className="gtile";
+    div.innerHTML=`<img src="${url}" alt=""><span class="gby">${by}</span>`;
+    grid.appendChild(div);
+  }
+  window.DFA_galleryUrls=urls;
+  if((myProfile.theme||"coastal")==="pictures")applyTheme("pictures");
+}
+let nameCache={};
+function nameFor(id){return nameCache[id]||"Family";}
+async function uploadPhotos(files){
+  for(const f of files){
+    if(!f.type.startsWith("image/"))continue;
+    const path=`${me.id}/${Date.now()}_${f.name.replace(/[^a-zA-Z0-9.\-_]/g,"_")}`;
+    const {error}=await sb.storage.from("gallery").upload(path,f,{upsert:false});
+    if(error){toast("Upload failed: "+error.message);continue;}
+    await sb.from("gallery").insert({uploader:me.id,storage_path:path});
+  }
+  toast("Added to the album"); renderGallery();
+}
+
+/* ===================== themes (per person) ===================== */
+function buildThemes(){
+  const g=$("v-themes");
+  g.innerHTML=`<h2>Choose your theme</h2><div class="cap" style="margin-bottom:12px">Personal to you — it saves to your profile and changes nobody else's view.</div><div class="tgrid" id="tgrid"></div>`;
+  const grid=$("tgrid");
+  Object.keys(THEMES).forEach(k=>{
+    const t=THEMES[k],v=t.vars;
+    const b=document.createElement("button");b.className="tcard";b.dataset.k=k;
+    b.innerHTML=`<div class="tprev" style="background:${v.bg}"><span class="mk" style="background:${v.accent}">◆</span><span class="cl" style="background:${v.surface}"></span><span class="cl" style="background:${v.accentSoft};width:24px"></span></div><div class="tmeta"><b>${t.name}</b><small>${t.tag}</small></div>`;
+    b.onclick=async()=>{ applyTheme(k); grid.querySelectorAll(".tcard").forEach(c=>c.classList.toggle("on",c.dataset.k===k));
+      myProfile.theme=k; await sb.from("profiles").update({theme:k}).eq("id",me.id); };
+    grid.appendChild(b);
+  });
+  grid.querySelectorAll(".tcard").forEach(c=>c.classList.toggle("on",c.dataset.k===(myProfile.theme||"coastal")));
+}
+
+/* ===================== notifications ===================== */
+async function loadNotifications(){
+  const {data:rows}=await sb.from("notifications").select("*").eq("user_id",me.id).order("created_at",{ascending:false}).limit(20);
+  const unread=(rows||[]).filter(n=>!n.read).length;
+  const c=$("ntCount"); c.textContent=unread; c.style.display=unread?"grid":"none";
+  $("ntPanel").innerHTML=(rows&&rows.length)?rows.map(n=>`<div class="ntf">${esc(n.body)}<br><small>${new Date(n.created_at).toLocaleString('en')}</small></div>`).join(""):'<div class="ntf">No notifications yet.</div>';
+}
+$("bell").onclick=async()=>{
+  $("ntPanel").classList.toggle("on");
+  if($("ntPanel").classList.contains("on")){ await sb.from("notifications").update({read:true}).eq("user_id",me.id).eq("read",false); loadNotifications(); }
+};
+
+/* ===================== realtime (optional) ===================== */
+function subscribeAll(){
+  try{
+    sb.channel("dfa")
+      .on("postgres_changes",{event:"*",schema:"public",table:"events"},()=>{ if($("v-calendar").classList.contains("on"))loadCalendar(); })
+      .on("postgres_changes",{event:"*",schema:"public",table:"rsvps"},()=>{ if($("v-calendar").classList.contains("on"))loadCalendar(); })
+      .on("postgres_changes",{event:"*",schema:"public",table:"gallery"},()=>{ if($("v-gallery").classList.contains("on"))renderGallery(); })
+      .on("postgres_changes",{event:"*",schema:"public",table:"notifications",filter:`user_id=eq.${me.id}`},()=>loadNotifications())
+      .subscribe();
+  }catch(e){}
+}
+</script>
+</body>
+</html>
