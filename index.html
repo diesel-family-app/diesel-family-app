@@ -277,6 +277,7 @@ async function showApp(){
   loadNotifications(); subscribeAll();
 }
 $("meBtn").onclick=openAccount;
+$("modal").addEventListener("click",e=>{ if(e.target===$("modal")) $("modal").classList.remove("on"); });
 function openAccount(){
   const nm=(myProfile.full_name&&myProfile.full_name.indexOf("@")===-1)?myProfile.full_name:"";
   $("modalBox").innerHTML=`<h2>Account</h2>
@@ -284,8 +285,10 @@ function openAccount(){
     <div style="margin-top:8px"><button class="btn go" id="acNameSave">Save name</button> <span class="cap" id="acMsg"></span></div>
     <hr style="border:0;border-top:1px solid var(--line);margin:16px 0">
     <button class="btn" id="acPw" style="width:100%;margin-bottom:8px">Change password</button>
-    <button class="btn" id="acOut" style="width:100%">Sign out</button>`;
+    <button class="btn" id="acOut" style="width:100%;margin-bottom:8px">Sign out</button>
+    <button class="btn" id="acClose" style="width:100%">Close</button>`;
   $("modal").classList.add("on");
+  $("acClose").onclick=()=>$("modal").classList.remove("on");
   $("acNameSave").onclick=async()=>{
     const v=$("acName").value.trim(); if(!v)return;
     const {error}=await sb.from("profiles").update({full_name:v}).eq("id",me.id);
