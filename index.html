@@ -183,7 +183,7 @@ if(!CFG.url||CFG.url==="YOUR_SUPABASE_URL"){
 async function boot(){
   const {data:{session}} = await sb.auth.getSession();
   if(session){ await afterLogin(); } else { showAuth(); }
-  sb.auth.onAuthStateChange((_e,s)=>{ if(!s){ location.reload(); } });
+  sb.auth.onAuthStateChange((event)=>{ if(event==="SIGNED_OUT"){ location.reload(); } });
 }
 
 /* ===================== auth ===================== */
