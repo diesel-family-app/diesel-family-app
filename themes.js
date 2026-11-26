@@ -88,7 +88,9 @@ function cursorFor(t){const a=t.vars.accent,d=t.decor;const wrap=(i)=>`<svg xmln
   if(d==="pictures")return wrap(`<rect x="5" y="8" width="20" height="15" rx="2" fill="${a}" stroke="#fff"/><circle cx="11" cy="13" r="2" fill="#fff"/><path d="M7,22 L13,16 L17,20 L21,17 L23,22Z" fill="#fff"/>`);
   if(d==="dragons")return wrap(`<path d="M15 3 C11 10 12 16 15 21 C18 16 20 11 17 6 C17 12 15 13 15 9 C14 13 12 15 13 18 C10 13 15 9 15 3Z" fill="${a}" stroke="#fff"/>`);
   return "";}
-function setCursor(t){const cs=cursorFor(t);if(!cs){_curStyle.textContent="";return;}const c=`url("data:image/svg+xml,${encodeURIComponent(cs)}") 4 4, auto`;_curStyle.textContent=`*{cursor:${c}}\na,button,input,textarea,label,select,.nav a,.btn,.tcard,.bell,.me{cursor:pointer}`;}
+// Themed cursor disabled — a large image cursor felt laggy/"sticky" and caused
+// mis-clicks. Normal arrow everywhere; inputs/buttons keep their native cursor.
+function setCursor(t){ _curStyle.textContent=""; }
 
 function applyTheme(key){if(!THEMES[key])key="coastal";const t=THEMES[key],r=document.documentElement.style;for(const k in t.vars)r.setProperty("--"+k,t.vars[k]);setCursor(t);renderDecor(key);}
 window.applyTheme=applyTheme;
