@@ -243,7 +243,7 @@ function switchPage(pg){
   if(pg==="dashboard")loadDashboard();
   if(pg==="calendar")loadCalendar();
   if(pg==="gallery")loadGallery();
-  if(pg==="ledger")comingSoon("ledger","Family Ledger","Phase 2 — inheritance, loans, proof-of-payment and approvals.");
+  if(pg==="ledger")loadLedger();
   if(pg==="budget")comingSoon("budget","Budget Hub","Phase 3 — monthly household budget tracker.");
   if(pg==="todos")comingSoon("todos","My To-dos","Phase 3 — your private to-do lists.");
   window.scrollTo({top:0,behavior:"smooth"});
@@ -387,6 +387,97 @@ async function uploadPhotos(files){
     await sb.from("gallery").insert({uploader:me.id,storage_path:path});
   }
   toast("Added to the album"); renderGallery();
+}
+
+/* ===================== ledger (Phase 2) ===================== */
+function fmtR(n){return "R"+Number(n||0).toLocaleString("en-ZA",{minimumFractionDigits:2,maximumFractionDigits:2});}
+async function loadLedger(){
+  const isLender=!!myProfile.is_lender;
+  const el=$("v-ledger");
+  el.innerHTML=`<h2>Family Ledger ${isLender?'<span class="badge">Lenders · all households</span>':'<span class="badge soon">Your household</span>'}</h2><div id="ledgerBody" class="cap">Loading…</div>`;
+  const {data:loans}=await sb.from("loans").select("*");
+  const {data:inh}=await sb.from("inheritances").select("*");
+  let html="";
+  if(inh&&inh.length){
+    html+='<div class="grid" style="margin:4px 0 14px">';
+    for(const i of inh){ html+=`<div class="card"><h3>Inheritance</h3><div class="cap">${esc(households[i.household_id]||"")}</div><div class="amt">${fmtR(i.amount)}</div><div class="row" style="margin-top:6px"><span>Recorded</span><span>${esc(i.granted_on||"")}</span></div></div>`; }
+    html+='</div>';
+  }
+  if(!loans||!loans.length){ html+='<div class="empty">No loans recorded yet.</div>'; $("ledgerBody").outerHTML=html; return; }
+  for(const ln of loans){
+    const {data:pays}=await sb.from("payments").select("*").eq("loan_id",ln.id).order("period");
+    const approved=(pays||[]).filter(p=>p.status==="approved").reduce((a,p)=>a+Number(p.amount),0);
+    const outstanding=Number(ln.principal)-approved;
+    const pct=Math.max(0,Math.min(100,approved/Number(ln.principal)*100));
+    const terms=[ln.is_interest_free?"interest-free":null, (ln.annual_stepup_pct>0?ln.annual_stepup_pct+"% step-up":null)].filter(Boolean).join(" · ");
+    html+=`<div class="card" style="margin-bottom:14px"><h3>${esc(households[ln.household_id]||"Loan")}${terms?' <span class="badge soon">'+esc(terms)+'</span>':''}</h3>
+      <div class="amt">${fmtR(outstanding)} <span style="font-size:13px;color:var(--muted);font-weight:500">outstanding</span></div>
+      <div class="track"><i style="width:${pct}%"></i></div>
+      <div class="row"><span>${fmtR(approved)} repaid of ${fmtR(ln.principal)}</span><span>${ln.monthly_instalment?fmtR(ln.monthly_instalment)+"/mo":""}${ln.due_day?" · due the "+ln.due_day:""}</span></div>
+      <table class="hist"><thead><tr><th>Month</th><th>Amount</th><th>Proof</th><th>Status</th><th></th></tr></thead><tbody>`;
+    for(const p of (pays||[])){
+      const month=new Date(p.period).toLocaleString("en",{month:"short",year:"numeric"});
+      let proof="—";
+      if(p.pop_path) proof=isLender?`<a href="#" data-pop="${esc(p.pop_path)}">📎 view</a>`:"📎 uploaded";
+      let status=p.status==="approved"?'<span class="pill2 ok">Approved</span>':(p.status==="rejected"?'<span class="pill2" style="color:var(--danger)">Rejected</span>':'<span class="pill2 pend">Pending</span>');
+      let action="";
+      if(isLender){ if(p.status==="pending"&&p.pop_path){ action=`<button class="btn go sm" data-appr="${p.id}">Approve</button> <button class="btn danger sm" data-rej="${p.id}">Reject</button>`; } else if(p.status==="pending"){ action='<span class="cap">waiting for proof</span>'; } }
+      else { if(p.status==="pending"&&!p.pop_path){ action=`<button class="btn go sm" data-upl="${p.id}">Upload proof</button>`; } else if(p.status==="pending"){ action='<span class="cap">awaiting approval</span>'; } }
+      html+=`<tr><td>${month}</td><td>${fmtR(p.amount)}</td><td>${proof}</td><td>${status}</td><td>${action}</td></tr>`;
+    }
+    html+=`</tbody></table>`;
+    if(!isLender){ html+=`<div style="margin-top:10px"><button class="btn go sm" data-logpay="${ln.id}" data-inst="${ln.monthly_instalment||0}">+ Log a payment</button></div>`; }
+    html+=`</div>`;
+  }
+  $("ledgerBody").outerHTML=html;
+  wireLedger();
+}
+function wireLedger(){
+  const el=$("v-ledger");
+  el.querySelectorAll("[data-pop]").forEach(a=>a.onclick=async e=>{e.preventDefault();const {data}=await sb.storage.from("pops").createSignedUrl(a.dataset.pop,3600);if(data&&data.signedUrl)window.open(data.signedUrl,"_blank");});
+  el.querySelectorAll("[data-appr]").forEach(b=>b.onclick=()=>decidePayment(b.dataset.appr,"approved"));
+  el.querySelectorAll("[data-rej]").forEach(b=>b.onclick=()=>{const r=prompt("Reason for rejecting (optional):");decidePayment(b.dataset.rej,"rejected",r);});
+  el.querySelectorAll("[data-upl]").forEach(b=>b.onclick=()=>pickFile(f=>uploadPop(b.dataset.upl,f)));
+  el.querySelectorAll("[data-logpay]").forEach(b=>b.onclick=()=>openLogPayment(b.dataset.logpay,Number(b.dataset.inst)));
+}
+function pickFile(cb){const i=document.createElement("input");i.type="file";i.accept="image/*,application/pdf";i.onchange=()=>{if(i.files[0])cb(i.files[0]);};i.click();}
+async function uploadPop(paymentId,file){
+  const path=`${me.id}/${paymentId}_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.\-_]/g,"_")}`;
+  const {error}=await sb.storage.from("pops").upload(path,file);
+  if(error){toast("Upload failed: "+error.message);return;}
+  const {error:e2}=await sb.from("payments").update({pop_path:path,submitted_by:me.id,submitted_at:new Date().toISOString()}).eq("id",paymentId);
+  if(e2){toast(e2.message);return;}
+  await notifyLenders("A proof of payment was submitted for approval.");
+  toast("Proof uploaded — awaiting approval"); loadLedger();
+}
+async function decidePayment(id,status,reason){
+  const {error}=await sb.from("payments").update({status,decided_by:me.id,decided_at:new Date().toISOString(),reason:reason||null}).eq("id",id);
+  if(error){toast(error.message);return;}
+  toast("Payment "+status); loadLedger();
+}
+function openLogPayment(loanId,inst){
+  $("modalBox").innerHTML=`<h2>Log a payment</h2>
+    <label class="fld">Month</label><input id="pmMonth" type="month">
+    <label class="fld">Amount (R)</label><input id="pmAmt" type="number" value="${inst||""}">
+    <label class="fld">Proof of payment (image or PDF)</label><input id="pmFile" type="file" accept="image/*,application/pdf">
+    <div class="err" id="pmErr"></div>
+    <div style="display:flex;gap:8px;margin-top:14px"><button class="btn go" id="pmSave">Submit for approval</button><button class="btn" id="pmCancel">Cancel</button></div>`;
+  $("modal").classList.add("on");
+  $("pmCancel").onclick=()=>$("modal").classList.remove("on");
+  $("pmSave").onclick=async()=>{
+    const m=$("pmMonth").value, amt=$("pmAmt").value, f=$("pmFile").files[0];
+    if(!m||!amt){$("pmErr").textContent="Enter the month and amount.";return;}
+    const {data:ins,error}=await sb.from("payments").insert({loan_id:loanId,period:m+"-01",amount:amt,status:"pending",submitted_by:me.id,submitted_at:new Date().toISOString()}).select().single();
+    if(error){$("pmErr").textContent=error.message;return;}
+    if(f&&ins){ const path=`${me.id}/${ins.id}_${Date.now()}_${f.name.replace(/[^a-zA-Z0-9.\-_]/g,"_")}`; const up=await sb.storage.from("pops").upload(path,f); if(!up.error) await sb.from("payments").update({pop_path:path}).eq("id",ins.id); }
+    await notifyLenders("A new payment was logged with proof for approval.");
+    $("modal").classList.remove("on"); toast("Submitted for approval"); loadLedger();
+  };
+}
+async function notifyLenders(msg){
+  const {data:lenders}=await sb.from("profiles").select("id").eq("is_lender",true);
+  const rows=(lenders||[]).filter(l=>l.id!==me.id).map(l=>({user_id:l.id,kind:"pop",body:msg,link:"ledger"}));
+  if(rows.length) await sb.from("notifications").insert(rows);
 }
 
 /* ===================== themes (per person) ===================== */
